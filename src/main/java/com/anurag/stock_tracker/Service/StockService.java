@@ -28,13 +28,26 @@ public class StockService {
 
     @Cacheable(value = "stock", key = "#stockSymbol")
     public StockResponse getStockForSymbol(final String stockSymbol) {
-       final AlphaVantageResponse response = stockClient.getStockQuote(stockSymbol);
-         return StockResponse.builder()
-                  .symbol(response.globalQuote().symbol())
-                 .price(Double.parseDouble(response.globalQuote().price()))
-                 .lastUpdates(response.globalQuote().lastTradingDay())
-                 .build();
+        final AlphaVantageResponse response = stockClient.getStockQuote(stockSymbol);
+
+        if (response == null || response.globalQuote() == null) {
+            System.out.println("NULL RESPONSE FOR: " + stockSymbol);
+
+            return StockResponse.builder()
+                    .symbol(stockSymbol)
+                    .price(0)
+                    .lastUpdates("N/A")
+                    .build();
+        }
+
+        return StockResponse.builder()
+                .symbol(response.globalQuote().symbol())
+                .price(Double.parseDouble(response.globalQuote().price()))
+                .lastUpdates(response.globalQuote().lastTradingDay())
+                .build();
     }
+
+
 
     public StockOverviewResponse getStockOverviewForSymbol(final String stockSymbol) {
         StockOverviewResponse response = stockClient.getStockOverview(stockSymbol);
@@ -54,9 +67,15 @@ public class StockService {
     }
 
     public List<DailyStockResponse> getHistory(String symbol, int days) {
-       StockHistoryResponse response =  stockClient.getStockHistory(symbol);
+        StockHistoryResponse response = stockClient.getStockHistory(symbol);
 
-       return response.timeSeries().entrySet().stream()
+        if (response == null || response.timeSeries() == null) {
+            System.out.println("NULL HISTORY FOR: " + symbol);
+            return List.of(); // empty list instead of crashing
+        }
+
+
+        return response.timeSeries().entrySet().stream()
                .limit(days)
                .map( entry->{
                    var date = entry.getKey();
@@ -90,7 +109,11 @@ public class StockService {
         List<FavouriteStock> favourites = favouriteStockRepository.findAll();
 
         return favourites.stream()
-                .map( fav-> getStockForSymbol(fav.getSymbol()))
+                .map(fav -> {
+                    System.out.println("Fetching: " + fav.getSymbol());   // ← ADD THIS
+                    return getStockForSymbol(fav.getSymbol());
+                })
                 .collect(Collectors.toList());
     }
+
 }
