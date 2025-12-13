@@ -17,7 +17,7 @@ A Spring Boot backend that fetches stock prices, company information, and histor
 **Why it matters**  
 Built with real world constraints in mind (limited API calls, error handling, clean architecture), not just basic CRUD operations.
 
------
+------
 
  🛠️ Tech Used
 
