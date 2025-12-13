@@ -41,13 +41,21 @@ public class StockController {
     }
 
     @PostMapping("/favourites")
-    public  ResponseEntity<FavouriteStock> saveFavouriteStock(@RequestBody FavouriteStock request){
-        final FavouriteStock saved = stockService.addFavourite(request.getSymbol());
-        return ResponseEntity.ok(saved);
+    public  ResponseEntity<String> saveFavouriteStock(@RequestParam String symbol){
+        final FavouriteStock saved = stockService.addFavourite(symbol.toUpperCase());
+        return ResponseEntity.ok("Successfully added the stock to favourites" + saved);
     }
 
     @GetMapping("/favourites")
     public List<StockResponse> getFavWithPrices(){
         return stockService.getFavWithPrices();
     }
+
+    @DeleteMapping("/favourites")
+    public ResponseEntity<String> deleteFavouriteStock(@RequestParam String symbol){
+        final FavouriteStock removed = stockService.removeFavourite(symbol.toUpperCase());
+        return ResponseEntity.ok("Successfully removed favourite stock with symbol: " + symbol);
+    }
+
+
 }

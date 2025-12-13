@@ -4,6 +4,7 @@ import com.anurag.stock_tracker.Client.StockClient;
 import com.anurag.stock_tracker.DTO.*;
 import com.anurag.stock_tracker.Entity.FavouriteStock;
 import com.anurag.stock_tracker.Exception.FavAlreadyExistsException;
+import com.anurag.stock_tracker.Exception.FavDoesNotExistsException;
 import com.anurag.stock_tracker.Repository.FavouriteStockRepository;
 import com.anurag.stock_tracker.common.MarketCapFormat;
 import org.springframework.cache.annotation.Cacheable;
@@ -94,6 +95,7 @@ public class StockService {
 
     @Transactional
     public FavouriteStock addFavourite(String symbol) {
+        symbol = symbol.replace("\"", "").trim();
         if (favouriteStockRepository.existsBySymbol(symbol)) {
             throw new FavAlreadyExistsException(symbol);
         }
@@ -103,6 +105,15 @@ public class StockService {
                 .build();
 
         return favouriteStockRepository.save(fav);
+    }
+    @Transactional
+    public FavouriteStock removeFavourite(String symbol){
+        if(!favouriteStockRepository.existsBySymbol(symbol)){
+             throw new FavDoesNotExistsException(symbol);
+         }
+        FavouriteStock fav = favouriteStockRepository.findBySymbol(symbol);
+        favouriteStockRepository.delete(fav);
+        return fav;
     }
 
     public List<StockResponse> getFavWithPrices(){
