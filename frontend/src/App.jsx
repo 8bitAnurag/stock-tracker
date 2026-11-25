@@ -80,8 +80,8 @@ function PriceSparkline({ history }) {
 }
 
 export default function App() {
-  const [query, setQuery] = useState('IBM');
-  const [activeSymbol, setActiveSymbol] = useState('IBM');
+  const [query, setQuery] = useState('AAPL');
+  const [activeSymbol, setActiveSymbol] = useState('AAPL');
   const [days, setDays] = useState(7);
 
   const [quote, setQuote] = useState(null);
@@ -145,8 +145,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    loadStock('IBM', 7);
-    fetchFavourites();
+    loadStock('AAPL', 7).then(() => fetchFavourites());
   }, [fetchFavourites, loadStock]);
 
   const handleSearch = (e) => {
