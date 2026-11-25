@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/stocks")
@@ -20,6 +21,11 @@ public class StockController {
     @Autowired
     public StockController(final StockService stockService){
         this.stockService = stockService;
+    }
+
+    @GetMapping("/health")
+    public Map<String, String> health() {
+        return Map.of("status", "ok");
     }
 
     @GetMapping("/{stockSymbol}")

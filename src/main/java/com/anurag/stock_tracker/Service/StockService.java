@@ -50,8 +50,22 @@ public class StockService {
 
 
 
+    @Cacheable(value = "overview", key = "#stockSymbol")
     public StockOverviewResponse getStockOverviewForSymbol(final String stockSymbol) {
         StockOverviewResponse response = stockClient.getStockOverview(stockSymbol);
+
+        if (response == null || response.symbol() == null) {
+            return new StockOverviewResponse(
+                    stockSymbol,
+                    stockSymbol,
+                    "Overview temporarily unavailable (Alpha Vantage rate limit or unknown ticker).",
+                    "N/A",
+                    "N/A",
+                    "N/A",
+                    "N/A",
+                    "N/A"
+            );
+        }
 
         String formattedMarketCap = MarketCapFormat.format(response.marketCap());
 
@@ -60,33 +74,33 @@ public class StockService {
                 response.Name(),
                 response.description(),
                 response.sector(),
-                response.industry(),// raw
-                formattedMarketCap,            // formatted
+                response.industry(),
+                formattedMarketCap,
                 response.peRatio(),
                 response.dividendYield()
         );
     }
 
+    @Cacheable(value = "history", key = "#symbol + '-' + #days")
     public List<DailyStockResponse> getHistory(String symbol, int days) {
         StockHistoryResponse response = stockClient.getStockHistory(symbol);
 
         if (response == null || response.timeSeries() == null) {
             System.out.println("NULL HISTORY FOR: " + symbol);
-            return List.of(); // empty list instead of crashing
+            return List.of();
         }
-
 
         return response.timeSeries().entrySet().stream()
                .limit(days)
-               .map( entry->{
+               .map(entry -> {
                    var date = entry.getKey();
                    var daily = entry.getValue();
                    return new DailyStockResponse(
                            date,
                            Double.parseDouble(daily.open()),
+                           Double.parseDouble(daily.close()),
                            Double.parseDouble(daily.high()),
                            Double.parseDouble(daily.low()),
-                           Double.parseDouble(daily.close()),
                            Long.parseLong(daily.volume())
                    );
                })

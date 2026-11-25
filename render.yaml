@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: stock-tracker-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/stocks/health
+    envVars:
+      - key: ALPHA_VANTAGE_API_KEY
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://*.vercel.app,http://localhost:5173

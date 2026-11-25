@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: #09090b;
+  color: #f4f4f5;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif-display {
+  font-family: "Instrument Serif", Georgia, serif;
+}
+
+.font-mono-tech {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
