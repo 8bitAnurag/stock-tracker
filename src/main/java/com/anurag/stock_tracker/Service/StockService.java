@@ -27,7 +27,7 @@ public class StockService {
         this.favouriteStockRepository = favouriteStockRepository;
     }
 
-    @Cacheable(value = "stock", key = "#stockSymbol")
+    @Cacheable(value = "stock", key = "#stockSymbol", unless = "#result.price() == 0")
     public StockResponse getStockForSymbol(final String stockSymbol) {
         final AlphaVantageResponse response = stockClient.getStockQuote(stockSymbol);
 
@@ -50,7 +50,7 @@ public class StockService {
 
 
 
-    @Cacheable(value = "overview", key = "#stockSymbol")
+    @Cacheable(value = "overview", key = "#stockSymbol", unless = "#result.sector().equals('N/A')")
     public StockOverviewResponse getStockOverviewForSymbol(final String stockSymbol) {
         StockOverviewResponse response = stockClient.getStockOverview(stockSymbol);
 
@@ -81,7 +81,7 @@ public class StockService {
         );
     }
 
-    @Cacheable(value = "history", key = "#symbol + '-' + #days")
+    @Cacheable(value = "history", key = "#symbol + '-' + #days", unless = "#result.isEmpty()")
     public List<DailyStockResponse> getHistory(String symbol, int days) {
         StockHistoryResponse response = stockClient.getStockHistory(symbol);
 
