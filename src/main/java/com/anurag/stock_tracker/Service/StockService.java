@@ -12,10 +12,12 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,7 +43,6 @@ public class StockService {
                     .build();
         }
 
-        // Automatic fallback if Alpha Vantage is rate-limited on shared cloud IPs
         JsonNode yahoo = stockClient.getYahooChart(stockSymbol, "5d");
         if (yahoo != null) {
             JsonNode meta = yahoo.path("meta");
@@ -53,7 +54,7 @@ public class StockService {
             if (price > 0) {
                 return StockResponse.builder()
                         .symbol(meta.path("symbol").asText(stockSymbol))
-                        .price(Math.round(price * 100.0) / 100.0)
+                        .price(round2(price))
                         .lastUpdates(lastDate)
                         .build();
             }
@@ -84,6 +85,48 @@ public class StockService {
             );
         }
 
+        // Fast fundamentals via TradingView scanner (Market Cap, P/E, Div Yield, Sector, Industry)
+        JsonNode tv = stockClient.getTradingViewFundamentals(stockSymbol);
+        if (tv != null && tv.path("d").isArray() && tv.path("d").size() >= 7) {
+            JsonNode d = tv.path("d");
+            String exchangeFull = tv.path("s").asText("");
+            String exchange = exchangeFull.contains(":") ? exchangeFull.split(":")[0] : "US";
+            String name = d.get(1).asText(stockSymbol);
+            String sector = d.get(2).isNull() ? "N/A" : d.get(2).asText("N/A");
+            String industry = d.get(3).isNull() ? "N/A" : d.get(3).asText("N/A");
+
+            String marketCapFormatted = "N/A";
+            if (!d.get(4).isNull() && d.get(4).isNumber()) {
+                marketCapFormatted = MarketCapFormat.format(
+                        BigDecimal.valueOf(d.get(4).asDouble()).toPlainString()
+                );
+            }
+
+            String peFormatted = !d.get(5).isNull() && d.get(5).isNumber()
+                    ? String.format(Locale.US, "%.2f", d.get(5).asDouble())
+                    : "N/A";
+
+            String divFormatted = !d.get(6).isNull() && d.get(6).isNumber()
+                    ? String.format(Locale.US, "%.2f%%", d.get(6).asDouble())
+                    : "0.00%";
+
+            String description = String.format(
+                    "%s (%s) trades on %s in the %s sector (%s).",
+                    name, stockSymbol, exchange, sector, industry
+            );
+
+            return new StockOverviewResponse(
+                    stockSymbol,
+                    name,
+                    description,
+                    sector,
+                    industry,
+                    marketCapFormatted,
+                    peFormatted,
+                    divFormatted
+            );
+        }
+
         JsonNode yahoo = stockClient.getYahooChart(stockSymbol, "5d");
         if (yahoo != null) {
             JsonNode meta = yahoo.path("meta");
@@ -93,9 +136,9 @@ public class StockService {
             return new StockOverviewResponse(
                     meta.path("symbol").asText(stockSymbol),
                     name,
-                    "Live market quote and OHLCV history served via fallback feed (Alpha Vantage daily quota reached on host).",
+                    String.format("%s (%s) trades on %s (%s).", name, stockSymbol, exchange, currency),
                     exchange,
-                    currency + " · " + meta.path("instrumentType").asText("EQUITY"),
+                    currency + " / " + meta.path("instrumentType").asText("EQUITY"),
                     "N/A",
                     "N/A",
                     "N/A"
@@ -105,7 +148,7 @@ public class StockService {
         return new StockOverviewResponse(
                 stockSymbol,
                 stockSymbol,
-                "Overview temporarily unavailable (Alpha Vantage rate limit or unknown ticker).",
+                "Overview temporarily unavailable for this ticker.",
                 "N/A",
                 "N/A",
                 "N/A",
@@ -205,7 +248,8 @@ public class StockService {
     public List<StockResponse> getFavWithPrices() {
         List<FavouriteStock> favourites = favouriteStockRepository.findAll();
 
-        return favourites.stream()
+        // Fetch watchlist prices concurrently when Alpha Vantage is bypassed/cached
+        return favourites.parallelStream()
                 .map(fav -> getStockForSymbol(fav.getSymbol()))
                 .collect(Collectors.toList());
     }

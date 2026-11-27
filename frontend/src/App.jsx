@@ -90,9 +90,22 @@ export default function App() {
   const [favourites, setFavourites] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [favBusy, setFavBusy] = useState(false);
   const [error, setError] = useState('');
   const [backendStatus, setBackendStatus] = useState('checking');
+
+  useEffect(() => {
+    if (!loading) {
+      setElapsedSec(0);
+      return;
+    }
+    const start = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   const fetchFavourites = useCallback(async () => {
     try {
@@ -293,6 +306,14 @@ export default function App() {
             ))}
           </div>
         </section>
+
+        {loading && backendStatus === 'checking' && elapsedSec >= 3 && (
+          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-xs text-amber-200">
+            <span className="font-mono-tech">
+              Waking Render free-tier backend ({elapsedSec}s)... First visit after idle takes ~35–50s; subsequent lookups load in &lt;1s.
+            </span>
+          </div>
+        )}
 
         {error && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
